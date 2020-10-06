@@ -474,7 +474,7 @@ def main():
 
         if (epoch > 0 and args.epochs_per_checkpoint > 0 and
             (epoch % args.epochs_per_checkpoint == 0) and args.local_rank == 0):
-
+            print(f'checkpointing model at {total_iter}')
             checkpoint_path = os.path.join(
                 args.output, f"FastPitch_checkpoint_{epoch}.pt")
             save_checkpoint(args.local_rank, model, ema_model, optimizer, epoch,

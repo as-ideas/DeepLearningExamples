@@ -7,9 +7,9 @@ export OMP_NUM_THREADS=1
 #    NGPU x BS x GRAD_ACC = 256.
 
 [ ! -n "$OUTPUT_DIR" ] && OUTPUT_DIR="./output"
-[ ! -n "$NGPU" ] && NGPU=8
+[ ! -n "$NGPU" ] && NGPU=1
 [ ! -n "$BS" ] && BS=32
-[ ! -n "$GRAD_ACC" ] && GRAD_ACC=1
+[ ! -n "$GRAD_ACC" ] && GRAD_ACC=8
 [ ! -n "$EPOCHS" ] && EPOCHS=1500
 [ "$AMP" == "true" ] && AMP_FLAG="--amp"
 
