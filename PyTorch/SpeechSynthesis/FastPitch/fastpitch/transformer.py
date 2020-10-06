@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from common.utils import mask_from_lens
-from common.text.symbols import pad_idx, symbols
+from common.text.symbols import pad_idx, phonemes
 
 
 class PositionalEmbedding(nn.Module):
@@ -256,7 +256,7 @@ class FFTransformer(nn.Module):
         self.d_head = d_head
 
         if embed_input:
-            self.word_emb = nn.Embedding(len(symbols), d_embed or d_model,
+            self.word_emb = nn.Embedding(len(phonemes), d_embed or d_model,
                                          padding_idx=pad_idx)
         else:
             self.word_emb = None

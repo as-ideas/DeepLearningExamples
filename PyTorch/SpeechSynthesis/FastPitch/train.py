@@ -42,12 +42,11 @@ from scipy.io.wavfile import write as write_wav
 from torch.autograd import Variable
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parameter import Parameter
+from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 import common.tb_dllogger as logger
-from apex import amp
-from apex.optimizers import FusedAdam, FusedLAMB
 
 import common
 import data_functions
@@ -114,7 +113,7 @@ def parse_args(parser):
     dataset.add_argument('--pitch-mean-std-file', type=str, default=None,
                          help='Path to pitch stats to be stored in the model')
     dataset.add_argument('--text-cleaners', nargs='*',
-                         default=['english_cleaners'], type=str,
+                         default=['basic_cleaners'], type=str,
                          help='Type of text cleaners for input text')
 
     distributed = parser.add_argument_group('distributed setup')
@@ -179,8 +178,6 @@ def save_checkpoint(local_rank, model, ema_model, optimizer, epoch, total_iter,
                   'state_dict': model.state_dict(),
                   'ema_state_dict': ema_dict,
                   'optimizer': optimizer.state_dict()}
-    if amp_run:
-        checkpoint['amp'] = amp.state_dict()
     torch.save(checkpoint, filepath)
 
 
@@ -197,9 +194,6 @@ def load_checkpoint(local_rank, model, ema_model, optimizer, epoch, total_iter,
           for k, v in checkpoint['state_dict'].items()}
     getattr(model, 'module', model).load_state_dict(sd)
     optimizer.load_state_dict(checkpoint['optimizer'])
-
-    if amp_run:
-        amp.load_state_dict(checkpoint['amp'])
 
     if ema_model is not None:
         ema_model.load_state_dict(checkpoint['ema_state_dict'])
@@ -325,25 +319,12 @@ def main():
 
     kw = dict(lr=args.learning_rate, betas=(0.9, 0.98), eps=1e-9,
               weight_decay=args.weight_decay)
-    if args.optimizer == 'adam':
-        optimizer = FusedAdam(model.parameters(), **kw)
-    elif args.optimizer == 'lamb':
-        optimizer = FusedLAMB(model.parameters(), **kw)
-    else:
-        raise ValueError
-
-    if args.amp:
-        model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
+    optimizer = Adam(model.parameters(), **kw)
 
     if args.ema_decay > 0:
         ema_model = copy.deepcopy(model)
     else:
         ema_model = None
-
-    if distributed_run:
-        model = DistributedDataParallel(
-            model, device_ids=[args.local_rank], output_device=args.local_rank,
-            find_unused_parameters=True)
 
     start_epoch = [1]
     start_iter = [0]
@@ -374,10 +355,7 @@ def main():
                                               args.training_files, args)
     valset = data_functions.get_data_loader('FastPitch', args.dataset_path,
                                             args.validation_files, args)
-    if distributed_run:
-        train_sampler, shuffle = DistributedSampler(trainset), False
-    else:
-        train_sampler, shuffle = None, True
+    train_sampler, shuffle = None, True
 
     train_loader = DataLoader(trainset, num_workers=16, shuffle=shuffle,
                               sampler=train_sampler, batch_size=args.batch_size,
@@ -388,7 +366,6 @@ def main():
 
     model.train()
 
-    torch.cuda.synchronize()
     for epoch in range(start_epoch, args.epochs + 1):
         epoch_start_time = time.perf_counter()
 
@@ -424,24 +401,15 @@ def main():
             x, y, num_frames = batch_to_gpu(batch)
             y_pred = model(x, use_gt_durations=True)
             loss, meta = criterion(y_pred, y)
-
+            print(f'{total_iter} {loss.item()}')
             loss /= args.gradient_accumulation_steps
             meta = {k: v / args.gradient_accumulation_steps
                     for k, v in meta.items()}
 
-            if args.amp:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
+            loss.backward()
 
-            if distributed_run:
-                reduced_loss = reduce_tensor(loss.data, args.world_size).item()
-                reduced_num_frames = reduce_tensor(num_frames.data, 1).item()
-                meta = {k: reduce_tensor(v, args.world_size) for k,v in meta.items()}
-            else:
-                reduced_loss = loss.item()
-                reduced_num_frames = num_frames.item()
+            reduced_loss = loss.item()
+            reduced_num_frames = num_frames.item()
             if np.isnan(reduced_loss):
                 raise Exception("loss is NaN")
 
@@ -453,12 +421,8 @@ def main():
             if accumulated_steps % args.gradient_accumulation_steps == 0:
 
                 logger.log_grads_tb(total_iter, model)
-                if args.amp:
-                    torch.nn.utils.clip_grad_norm_(
-                        amp.master_params(optimizer), args.grad_clip_thresh)
-                else:
-                    torch.nn.utils.clip_grad_norm_(
-                        model.parameters(), args.grad_clip_thresh)
+                torch.nn.utils.clip_grad_norm_(
+                model.parameters(), args.grad_clip_thresh)
 
                 optimizer.step()
                 apply_ema_decay(model, ema_model, args.ema_decay)

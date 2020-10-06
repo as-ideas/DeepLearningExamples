@@ -19,14 +19,13 @@ GBS=$(($NGPU * $BS * $GRAD_ACC))
 echo -e "\nSetup: ${NGPU}x${BS}x${GRAD_ACC} - global batch size ${GBS}\n"
 
 mkdir -p "$OUTPUT_DIR"
-python -m torch.distributed.launch --nproc_per_node ${NGPU} train.py \
-    --cuda \
+python3 train.py \
     -o "$OUTPUT_DIR/" \
     --log-file "$OUTPUT_DIR/nvlog.json" \
-    --dataset-path LJSpeech-1.1 \
-    --training-files filelists/ljs_mel_dur_pitch_text_train_filelist.txt \
-    --validation-files filelists/ljs_mel_dur_pitch_text_test_filelist.txt \
-    --pitch-mean-std-file LJSpeech-1.1/pitch_char_stats__ljs_audio_text_train_filelist.json \
+    --dataset-path /Users/cschaefe/datasets/audio_data/Cutted_merged_fastpitch \
+    --training-files /Users/cschaefe/datasets/audio_data/Cutted_merged_fastpitch/metadata_train.txt \
+    --validation-files /Users/cschaefe/datasets/audio_data/Cutted_merged_fastpitch/metadata_val.txt \
+    --pitch-mean-std-file /Users/cschaefe/datasets/audio_data/Cutted_merged_fastpitch/pitch_char_stats__metadata_train.json \
     --epochs ${EPOCHS} \
     --epochs-per-checkpoint 100 \
     --warmup-steps 1000 \

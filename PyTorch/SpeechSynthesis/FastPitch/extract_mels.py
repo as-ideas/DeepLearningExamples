@@ -38,7 +38,6 @@ from dllogger import StdOutBackend, JSONStreamBackend, Verbosity
 from torch.utils.data import DataLoader
 
 from common import utils
-from inference import load_and_setup_model
 from tacotron2.data_function import TextMelLoader, TextMelCollate, batch_to_gpu
 
 
@@ -48,7 +47,7 @@ def parse_args(parser):
     """
     parser.add_argument('--tacotron2-checkpoint', type=str,
                         help='full path to the generator checkpoint file')
-    parser.add_argument('-b', '--batch-size', default=32, type=int)
+    parser.add_argument('-b', '--batch-size', default=1, type=int)
     parser.add_argument('--log-file', type=str, default='nvlog.json',
                         help='Filename for logging')
     # Mel extraction
@@ -57,7 +56,7 @@ def parse_args(parser):
     parser.add_argument('--wav-text-filelist', required=True,
                         type=str, help='Path to file with audio paths and text')
     parser.add_argument('--text-cleaners', nargs='*',
-                        default=['english_cleaners'], type=str,
+                        default=['basic_cleaners'], type=str,
                         help='Type of text cleaners for input text')
     parser.add_argument('--max-wav-value', default=32768.0, type=float,
                         help='Maximum audiowave value')
@@ -85,7 +84,7 @@ def parse_args(parser):
     parser.add_argument('--extract-pitch-mel', action='store_true',
                         help='Extract pitch')
     parser.add_argument('--extract-pitch-char', action='store_true',
-                        help='Extract pitch averaged over input characters')
+                        help='Extract pitch averaged over input characters', default=True)
     parser.add_argument('--extract-pitch-trichar', action='store_true',
                         help='Extract pitch averaged over input characters')
     parser.add_argument('--train-mode', action='store_true',
@@ -182,27 +181,15 @@ def main():
     parser = argparse.ArgumentParser(description='PyTorch TTS Data Pre-processing')
     parser = parse_args(parser)
     args, unk_args = parser.parse_known_args()
+    args.n_mel_channels = 80
     if len(unk_args) > 0:
         raise ValueError(f'Invalid options {unk_args}')
-
-    if args.extract_pitch_char:
-        assert args.extract_durations, "Durations required for pitch extraction"
 
     DLLogger.init(backends=[JSONStreamBackend(Verbosity.DEFAULT, args.log_file),
                             StdOutBackend(Verbosity.VERBOSE)])
     for k,v in vars(args).items():
         DLLogger.log(step="PARAMETER", data={k:v})
 
-    model = load_and_setup_model(
-        'Tacotron2', parser, args.tacotron2_checkpoint, amp=False,
-        device=torch.device('cuda' if args.cuda else 'cpu'),
-        forward_is_infer=False, ema=False)
-
-    if args.train_mode:
-        model.train()
-
-    # n_mel_channels arg has been consumed by model's arg parser
-    args.n_mel_channels = model.n_mel_channels
 
     for datum in ('mels', 'mels_teacher', 'attentions', 'durations',
                   'pitch_mel', 'pitch_char', 'pitch_trichar'):
@@ -229,30 +216,12 @@ def main():
             fpath = Path(args.dataset_path, 'mels', fnames[j] + '.pt')
             torch.save(mel[:, :mel_lens[j]].cpu(), fpath)
 
-        with torch.no_grad():
-            out_mels, out_mels_postnet, _, alignments = model.forward(x)
-
-        if args.extract_mels_teacher:
-            for j, mel in enumerate(out_mels_postnet):
-                fpath = Path(args.dataset_path, 'mels_teacher', fnames[j] + '.pt')
-                torch.save(mel[:, :mel_lens[j]].cpu(), fpath)
-        if args.extract_attentions:
-            for j, ali in enumerate(alignments):
-                ali = ali[:mel_lens[j],:text_lens[j]]
-                fpath = Path(args.dataset_path, 'attentions', fnames[j] + '.pt')
-                torch.save(ali.cpu(), fpath)
-        durations = []
-        if args.extract_durations:
-            for j, ali in enumerate(alignments):
-                text_len = text_lens[j]
-                ali = ali[:mel_lens[j],:text_len]
-                dur = torch.histc(torch.argmax(ali, dim=1), min=0,
-                                  max=text_len-1, bins=text_len)
-                durations.append(dur)
-                fpath = Path(args.dataset_path, 'durations', fnames[j] + '.pt')
-                torch.save(dur.cpu().int(), fpath)
         if args.extract_pitch_mel or args.extract_pitch_char or args.extract_pitch_trichar:
-            for j, dur in enumerate(durations):
+            for j in range(len(batch[0])):
+                dur_path = Path(args.dataset_path) / 'durations' / f'{fnames[j]}.pt'
+                dur = torch.load(dur_path)
+                print(dur_path)
+                print(dur)
                 fpath = Path(args.dataset_path, 'pitch_char', fnames[j] + '.pt')
                 wav = Path(args.dataset_path, 'wavs', fnames[j] + '.wav')
                 p_mel, p_char, p_trichar = calculate_pitch(str(wav), dur.cpu().numpy())

@@ -19,7 +19,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from common.utils import mask_from_lens
-from common.text.symbols import pad_idx, symbols
+from common.text.symbols import pad_idx, phonemes
 
 
 class NoOp(nn.Module):
@@ -267,7 +267,7 @@ class FFTransformer(nn.Module):
 
         self.embed_input = embed_input
         if embed_input:
-            self.word_emb = nn.Embedding(len(symbols), d_embed or d_model,
+            self.word_emb = nn.Embedding(len(phonemes), d_embed or d_model,
                                          padding_idx=FFTransformer.pad_idx)
         else:
             self.word_emb = NoOp()

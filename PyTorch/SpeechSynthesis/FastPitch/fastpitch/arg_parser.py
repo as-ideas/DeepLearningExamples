@@ -27,7 +27,7 @@
 
 import argparse
 
-from common.text import symbols
+from common.text import phonemes
 
 
 def parse_fastpitch_args(parent, add_help=False):
@@ -42,12 +42,12 @@ def parse_fastpitch_args(parent, add_help=False):
                     help='Number of bins in mel-spectrograms')
     io.add_argument('--max-seq-len', default=2048, type=int,
                     help='')
-    global symbols
-    len_symbols = len(symbols)
-    symbols = parser.add_argument_group('symbols parameters')
-    symbols.add_argument('--n-symbols', default=len_symbols, type=int,
-                         help='Number of symbols in dictionary')
-    symbols.add_argument('--symbols-embedding-dim', default=384, type=int,
+    global phonemes
+    len_phonemes = len(phonemes)
+    phonemes = parser.add_argument_group('phonemes parameters')
+    phonemes.add_argument('--n-symbols', default=len_phonemes, type=int,
+                         help='Number of phonemes in dictionary')
+    phonemes.add_argument('--symbols-embedding-dim', default=384, type=int,
                          help='Input embedding dimension')
 
     in_fft = parser.add_argument_group('input FFT parameters')
