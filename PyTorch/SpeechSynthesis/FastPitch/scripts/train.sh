@@ -21,6 +21,7 @@ echo -e "\nSetup: ${NGPU}x${BS}x${GRAD_ACC} - global batch size ${GBS}\n"
 mkdir -p "$OUTPUT_DIR"
 python3 train.py \
     -o "$OUTPUT_DIR/" \
+    --cuda \
     --log-file "$OUTPUT_DIR/nvlog.json" \
     --dataset-path /Users/cschaefe/datasets/asvoice2_fastpitch \
     --training-files /Users/cschaefe/datasets/asvoice2_fastpitch/metadata_train.txt \
