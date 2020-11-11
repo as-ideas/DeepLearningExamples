@@ -357,7 +357,7 @@ def main():
                                             args.validation_files, args)
     train_sampler, shuffle = None, True
 
-    train_loader = DataLoader(trainset, num_workers=16, shuffle=shuffle,
+    train_loader = DataLoader(trainset, num_workers=0, shuffle=shuffle,
                               sampler=train_sampler, batch_size=args.batch_size,
                               pin_memory=False, drop_last=True,
                               collate_fn=collate_fn)
