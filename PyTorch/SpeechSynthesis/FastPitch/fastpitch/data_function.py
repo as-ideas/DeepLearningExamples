@@ -81,8 +81,6 @@ class TextMelAliCollate():
             dur = batch[ids_sorted_decreasing[i]][3]
             dur_padded[i, :dur.shape[0]] = dur
             dur_lens[i] = dur.shape[0]
-            if dur_lens[i] != input_lengths[i]:
-                print(f'{dur_lens[i]} {input_lengths[i]}')
             #assert dur_lens[i] == input_lengths[i], f'dur len {dur_lens} inp len {input_lengths}'
 
         # Right zero-pad mel-spec
