@@ -75,14 +75,15 @@ class TextMelAliCollate():
         for i in range(len(ids_sorted_decreasing)):
             text = batch[ids_sorted_decreasing[i]][0]
             text_padded[i, :text.size(0)] = text
-
         dur_padded = torch.zeros_like(text_padded, dtype=batch[0][3].dtype)
         dur_lens = torch.zeros(dur_padded.size(0), dtype=torch.int32)
         for i in range(len(ids_sorted_decreasing)):
             dur = batch[ids_sorted_decreasing[i]][3]
             dur_padded[i, :dur.shape[0]] = dur
             dur_lens[i] = dur.shape[0]
-            assert dur_lens[i] == input_lengths[i], f'dur len {dur_lens} inp len {input_lengths}'
+            if dur_lens[i] != input_lengths[i]:
+                print(f'{dur_lens[i]} {input_lengths[i]}')
+            #assert dur_lens[i] == input_lengths[i], f'dur len {dur_lens} inp len {input_lengths}'
 
         # Right zero-pad mel-spec
         num_mels = batch[0][1].size(0)

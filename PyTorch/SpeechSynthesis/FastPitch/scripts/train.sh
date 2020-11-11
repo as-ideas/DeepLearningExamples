@@ -22,11 +22,11 @@ mkdir -p "$OUTPUT_DIR"
 python3 train.py \
     -o "$OUTPUT_DIR/" \
     --log-file "$OUTPUT_DIR/nvlog.json" \
-    --dataset-path /Users/cschaefe/datasets/audio_data/Cutted_merged_fastpitch \
-    --training-files /Users/cschaefe/datasets/audio_data/Cutted_merged_fastpitch/metadata_train.txt \
-    --validation-files /Users/cschaefe/datasets/audio_data/Cutted_merged_fastpitch/metadata_val.txt \
-    --pitch-mean-std-file /Users/cschaefe/datasets/audio_data/Cutted_merged_fastpitch/pitch_char_stats__metadata_train.json \
-    --epochs ${EPOCHS} \
+    --dataset-path /Users/cschaefe/datasets/asvoice2_fastpitch \
+    --training-files /Users/cschaefe/datasets/asvoice2_fastpitch/metadata_train.txt \
+    --validation-files /Users/cschaefe/datasets/asvoice2_fastpitch/metadata_val.txt \
+    --pitch-mean-std-file /Users/cschaefe/datasets/asvoice2_fastpitch/pitch_char_stats__metadata_train_taco.json \
+    --epochs ${EPOCHS} \i
     --epochs-per-checkpoint 100 \
     --warmup-steps 1000 \
     -lr 0.1 \

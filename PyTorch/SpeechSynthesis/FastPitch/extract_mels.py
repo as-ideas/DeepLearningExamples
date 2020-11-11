@@ -126,12 +126,10 @@ def dur_chunk_sizes(n, ary):
     return ret
 
 
-def calculate_pitch(wav, durs):
+def calculate_pitch(pitch_file, durs):
     mel_len = durs.sum()
     durs_cum = np.cumsum(np.pad(durs, (1, 0)))
-    snd = parselmouth.Sound(wav)
-    pitch = snd.to_pitch(time_step=snd.duration / (mel_len + 3)
-                         ).selected_array['frequency']
+    pitch = np.load(pitch_file)
     assert np.abs(mel_len - pitch.shape[0]) <= 1.0
 
     # Average pitch over characters
@@ -223,8 +221,8 @@ def main():
                 print(dur_path)
                 print(dur)
                 fpath = Path(args.dataset_path, 'pitch_char', fnames[j] + '.pt')
-                wav = Path(args.dataset_path, 'wavs', fnames[j] + '.wav')
-                p_mel, p_char, p_trichar = calculate_pitch(str(wav), dur.cpu().numpy())
+                pitch_file = Path(args.dataset_path, 'raw_pitch', fnames[j] + '.npy')
+                p_mel, p_char, p_trichar = calculate_pitch(str(pitch_file), dur.cpu().numpy())
                 pitch_vecs['mel'][fnames[j]] = p_mel
                 pitch_vecs['char'][fnames[j]] = p_char
                 pitch_vecs['trichar'][fnames[j]] = p_trichar

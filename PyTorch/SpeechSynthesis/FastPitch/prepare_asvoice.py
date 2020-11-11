@@ -25,11 +25,13 @@ def ljspeech(csv_file):
     return text_dict
 
 
-data_path = Path('/Users/cschaefe/datasets/audio_data/Cutted_merged_fastpitch/')
+data_path = Path('/Users/cschaefe/datasets/asvoice2_fastpitch')
 
 csv_path = data_path / 'metadata.csv'
-dur_path = data_path / 'durations_npy'
+dur_path = data_path / 'alg'
 dur_path_torch = data_path / 'durations'
+dur_path_torch.mkdir(parents=True, exist_ok=True)
+(data_path / 'mels').mkdir(parents=True, exist_ok=True)
 
 train_meta_file = data_path / 'metadata_train.txt'
 val_meta_file = data_path / 'metadata_val.txt'
@@ -48,6 +50,7 @@ random.shuffle(file_ids)
 val_ids = file_ids[:100]
 train_ids = file_ids[100:]
 
+print('preparing fast pitch text')
 train_strings = [f'mels/{item_id}.pt|durations/{item_id}.pt|pitch_char/{item_id}.pt|{text_dict[item_id]}\n' for item_id in train_ids]
 val_strings = [f'mels/{item_id}.pt|durations/{item_id}.pt|pitch_char/{item_id}.pt|{text_dict[item_id]}\n' for item_id in val_ids]
 with open(train_meta_file, 'w+', encoding='utf-8') as f:
@@ -55,8 +58,9 @@ with open(train_meta_file, 'w+', encoding='utf-8') as f:
 with open(val_meta_file, 'w+', encoding='utf-8') as f:
     f.write(''.join(val_strings))
 
-train_strings = [f'wavs/{item_id}.wav|{text_dict[item_id]}\n' for item_id in train_ids]
-val_strings = [f'wavs/{item_id}.wav|{text_dict[item_id]}\n' for item_id in val_ids]
+print('taco text')
+train_strings = [f'mel/{item_id}.npy|{text_dict[item_id]}\n' for item_id in train_ids]
+val_strings = [f'mel/{item_id}.npy|{text_dict[item_id]}\n' for item_id in val_ids]
 with open(train_meta_file_taco, 'w+', encoding='utf-8') as f:
     f.write(''.join(train_strings))
 with open(val_meta_file_taco, 'w+', encoding='utf-8') as f:
