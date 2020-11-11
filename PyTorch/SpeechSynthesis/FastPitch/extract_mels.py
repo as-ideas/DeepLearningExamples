@@ -199,7 +199,7 @@ def main():
     filenames = [Path(l.split('|')[0]).stem
                  for l in open(args.wav_text_filelist, 'r')]
     dataset = FilenamedLoader(filenames, args.dataset_path, args.wav_text_filelist,
-                              args, load_mel_from_disk=False)
+                              args, load_mel_from_disk=True)
     # TextMelCollate supports only n_frames_per_step=1
     data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False,
                              sampler=None, num_workers=0,

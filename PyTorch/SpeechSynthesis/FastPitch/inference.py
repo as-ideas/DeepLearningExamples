@@ -44,7 +44,7 @@ from pitch_transform import pitch_transform_custom
 from waveglow import model as glow
 import matplotlib.pyplot as plt
 sys.modules['glow'] = glow
-
+import soundfile as sf
 import librosa
 
 def reconstruct_waveform(mel, n_iter=32):
@@ -271,7 +271,7 @@ def main():
 
     device = torch.device('cuda' if args.cuda else 'cpu')
 
-    model_path = '/Users/cschaefe/fast_pitch_models/FastPitch_checkpoint_40.pt'
+    model_path = '/Users/cschaefe/fast_pitch_models/FastPitch_checkpoint_600.pt'
 
     if args.fastpitch != 'SKIP':
         generator = load_and_setup_model(
@@ -284,23 +284,23 @@ def main():
     else:
         generator = None
 
-    print(generator.pitch_mean)
+    with open('sentences.txt', 'r', encoding='utf-8') as f:
+        sentences = f.readlines()
 
-    text = 'Alle vier Tage folgt eine zweitägige Pause.'
-    text = basic_cleaners(text)
-    inputs = text_to_sequence(text)
-    inputs = torch.tensor(inputs).unsqueeze(0)
-    with torch.no_grad():
-        mel_out, dec_lens, dur_pred, pitch_pred = generator.infer(inputs, None)
-    fig = plot_mel(mel_out.squeeze().cpu().numpy())
-    plt.show()
+    def pitch_transform(x, *args):
+        return x * 2.
 
+    for i, text in enumerate(sentences, 1):
+        print(f'synthing {i} / {len(sentences)}')
+        text = basic_cleaners(text)
+        inputs = text_to_sequence(text)
+        inputs = torch.tensor(inputs).unsqueeze(0)
+        with torch.no_grad():
+            mel_out, dec_lens, dur_pred, pitch_pred = generator.infer(inputs, None, pitch_transform=pitch_transform)
 
-    print(f'mel shape {mel_out.shape}')
-    print(f'dur pred {dur_pred}')
-    print(f'pitch pred {pitch_pred}')
-    print(f'mel pred {mel_out}')
-    exit()
+        wav = reconstruct_waveform(mel_out.squeeze().numpy())
+        sf.write(f'/tmp/fast_pitch/{i}_griffinlim.wav', wav.astype(np.float32), samplerate=22050)
+        torch.save(mel_out, f'/tmp/fast_pitch/{i}_melgan.mel')
 
 
 if __name__ == '__main__':
