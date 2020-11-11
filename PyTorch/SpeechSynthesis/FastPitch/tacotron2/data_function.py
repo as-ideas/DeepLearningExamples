@@ -46,6 +46,9 @@ class TextMelLoader(torch.utils.data.Dataset):
         self.audiopaths_and_text = load_filepaths_and_text(dataset_path, audiopaths_and_text)
         self.text_cleaners = args.text_cleaners
         self.load_mel_from_disk = load_mel_from_disk
+        self.device = torch.device('cpu')
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
         if not load_mel_from_disk:
             self.max_wav_value = args.max_wav_value
             self.sampling_rate = args.sampling_rate
@@ -59,7 +62,7 @@ class TextMelLoader(torch.utils.data.Dataset):
             melspec = np.load(filename)
             melspec = torch.tensor(melspec).float()
         else:
-            melspec = torch.load(filename)
+            melspec = torch.load(filename).to(self.device)
 
     # assert melspec.size(0) == self.stft.n_mel_channels, (
         #     'Mel dimension mismatch: given {}, expected {}'.format(

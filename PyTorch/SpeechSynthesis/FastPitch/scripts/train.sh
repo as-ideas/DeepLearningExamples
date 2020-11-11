@@ -26,7 +26,7 @@ python3 train.py \
     --training-files /Users/cschaefe/datasets/asvoice2_fastpitch/metadata_train.txt \
     --validation-files /Users/cschaefe/datasets/asvoice2_fastpitch/metadata_val.txt \
     --pitch-mean-std-file /Users/cschaefe/datasets/asvoice2_fastpitch/pitch_char_stats__metadata_train_taco.json \
-    --epochs ${EPOCHS} \i
+    --epochs ${EPOCHS} \
     --epochs-per-checkpoint 100 \
     --warmup-steps 1000 \
     -lr 0.1 \
